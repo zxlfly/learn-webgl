@@ -11,12 +11,6 @@
       padding: 0;
       margin: 0;
     }
-
-    #canvas {
-      background: url("./img/sky.jpeg");
-      background-size: cover;
-      background-position: right bottom;
-    }
   </style>
 </head>
 
@@ -39,7 +33,12 @@
   //限定颜色变量的限定符叫uniform
   uniform vec4 u_FragColor;
   void main() {
-      gl_FragColor = u_FragColor;
+    float dist = distance(gl_PointCoord, vec2(0.5, 0.5));
+      if(dist < 0.5) {
+        gl_FragColor = u_FragColor;
+    } else {
+        discard;
+    }
   }
 </script>
 <script type="module">
@@ -55,7 +54,7 @@
   const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
   const u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
 
-  gl.clearColor(0.0, 0.0, 0.0, 0);
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
   // gl.drawArrays(gl.POINTS, 0, 1);
   // function addPoint(x, y) {
@@ -64,6 +63,7 @@
   //   gl.clear(gl.COLOR_BUFFER_BIT);
   //   gl.drawArrays(gl.POINTS, 0, 1);
   // }
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
   let points = []
   canvas.addEventListener('click', function (e) {
     // 页面左上角到点击点的向量
@@ -83,12 +83,12 @@
     // 解决基底分量差
     let [x, y] = [px / cx, py / cy]
     const color = new Float32Array([
-      0.87,
-      0.91,
-      1,
-      Math.random()
+      Math.random(),
+      Math.random(),
+      Math.random(),
+      1.0
     ])
-    points.push({ x, y, z: Math.random() * 5, color })
+    points.push({ x, y, z: Math.random() * 50, color })
     gl.clear(gl.COLOR_BUFFER_BIT);
     points.forEach(point => {
       gl.vertexAttrib2f(a_Position, point.x, point.y);
