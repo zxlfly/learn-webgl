@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>绘制随机的点</title>
+  <title>绘制随机大小颜色的点</title>
   <style>
     * {
       padding: 0;
@@ -28,8 +28,12 @@
 </script>
 <!-- 片元着色器 -->
 <script id="fragmentShader" type="x-shader-x-fragment">
+  // 对浮点数精度的定义，mediump 是中等精度的意思，这个必须要有，不然画不出东西来。
+  precision mediump float;
+  //限定颜色变量的限定符叫uniform
+  uniform vec4 u_FragColor;
   void main() {
-    gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+      gl_FragColor = u_FragColor;
   }
 </script>
 <script type="module">
@@ -43,6 +47,7 @@
   initShaders(gl, vsSource, fsSource);
   const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+  const u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -72,11 +77,20 @@
     py = -py
     // 解决基底分量差
     let [x, y] = [px / cx, py / cy]
-    points.push({ x, y, z: Math.random() * 50 })
+    const color = new Float32Array([
+      Math.random(),
+      Math.random(),
+      Math.random(),
+      1.0
+    ])
+    points.push({ x, y, z: Math.random() * 50, color })
     gl.clear(gl.COLOR_BUFFER_BIT);
     points.forEach(point => {
       gl.vertexAttrib2f(a_Position, point.x, point.y);
       gl.vertexAttrib1f(a_PointSize, point.z);
+      //修改uniform 变量
+      // uniform4fv 既可以单独接受r、g、b、a 四个参数，也可以接受数组形式的参数
+      gl.uniform4fv(u_FragColor, point.color);
       gl.drawArrays(gl.POINTS, 0, 1);
     })
     // addPoint(x, y)
