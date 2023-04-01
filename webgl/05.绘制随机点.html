@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>绘制随机的点</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+</body>
+<!-- 顶点着色器 -->
+<script id="vertexShader" type="x-shader-x-vertex">
+  attribute vec4 a_Position;
+  attribute float a_PointSize;
+  void main() {
+    gl_Position = a_Position;
+    gl_PointSize = a_PointSize;
+}
+</script>
+<!-- 片元着色器 -->
+<script id="fragmentShader" type="x-shader-x-fragment">
+  void main() {
+    gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+  }
+</script>
+<script type="module">
+  import { initShaders } from "./js/utils.js"
+  var canvas = document.getElementById("canvas");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const vsSource = document.getElementById('vertexShader').innerText;
+  const fsSource = document.getElementById('fragmentShader').innerText;
+  var gl = canvas.getContext("webgl");
+  initShaders(gl, vsSource, fsSource);
+  const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
+
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  // gl.drawArrays(gl.POINTS, 0, 1);
+  // function addPoint(x, y) {
+  //   gl.vertexAttrib3f(a_Position, x, y, 0.0);
+  //   gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  //   gl.clear(gl.COLOR_BUFFER_BIT);
+  //   gl.drawArrays(gl.POINTS, 0, 1);
+  // }
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  let points = []
+  canvas.addEventListener('click', function (e) {
+    // 页面左上角到点击点的向量
+    const { clientX, clientY } = e
+    // 页面左上角到canvas左上角的向量
+    const { left, top } = canvas.getBoundingClientRect()
+    // canvas左上角到点击点的向量
+    const [cssX, cssY] = [clientX - left, clientY - top]
+    // 解决坐标系问题
+    // canvas 中心点为webgl坐标系的原点
+    let [cx, cy] = [canvas.width / 2, canvas.height / 2]
+    // 解决原点差异，
+    // 知道webgl原点位置，鼠标点击位置，就可以求出，鼠标点击位置相对于webgl原点的位置
+    let [px, py] = [cssX - cx, cssY - cy]
+    // 解决y方向差异，y的方向相反的
+    py = -py
+    // 解决基底分量差
+    let [x, y] = [px / cx, py / cy]
+    points.push({ x, y, z: Math.random() * 50 })
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    points.forEach(point => {
+      gl.vertexAttrib2f(a_Position, point.x, point.y);
+      gl.vertexAttrib1f(a_PointSize, point.z);
+      gl.drawArrays(gl.POINTS, 0, 1);
+    })
+    // addPoint(x, y)
+  })
+</script>
+
+</html>
