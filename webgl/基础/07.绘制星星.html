@@ -11,11 +11,33 @@
       padding: 0;
       margin: 0;
     }
+
+    #canvas {
+      background: url("../img/sky.jpeg");
+      background-size: cover;
+      background-position: right bottom;
+    }
+
+    #audio {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      opacity: 5%;
+      transition: opacity 200ms;
+      z-index: 20;
+    }
+
+    #audio:hover {
+      opacity: 50%;
+    }
   </style>
 </head>
 
 <body>
   <canvas id="canvas"></canvas>
+  <audio id="audio" controls loop autoplay>
+    <source src="../audio/cef.mp3" type="audio/mpeg">
+  </audio>
 </body>
 <!-- 顶点着色器 -->
 <script id="vertexShader" type="x-shader-x-vertex">
@@ -42,28 +64,26 @@
   }
 </script>
 <script type="module">
-  import { initShaders } from "./js/utils.js"
+  import { initShaders } from "../js/utils.js"
+  import Compose from "../js/compose.js"
+  import Track from "../js/track.js"
   var canvas = document.getElementById("canvas");
+  var compose = new Compose()
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   const vsSource = document.getElementById('vertexShader').innerText;
   const fsSource = document.getElementById('fragmentShader').innerText;
   var gl = canvas.getContext("webgl");
+  // 开启片元的颜色合成功能
+  gl.enable(gl.BLEND)
+  //设置片元的合成方式
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
   initShaders(gl, vsSource, fsSource);
   const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
   const a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');
   const u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
-
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clearColor(0.0, 0.0, 0.0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
-  // gl.drawArrays(gl.POINTS, 0, 1);
-  // function addPoint(x, y) {
-  //   gl.vertexAttrib3f(a_Position, x, y, 0.0);
-  //   gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  //   gl.clear(gl.COLOR_BUFFER_BIT);
-  //   gl.drawArrays(gl.POINTS, 0, 1);
-  // }
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
   let points = []
   canvas.addEventListener('click', function (e) {
     // 页面左上角到点击点的向量
@@ -82,24 +102,37 @@
     py = -py
     // 解决基底分量差
     let [x, y] = [px / cx, py / cy]
-    const color = new Float32Array([
-      Math.random(),
-      Math.random(),
-      Math.random(),
-      1.0
+    const a = 1
+    var obj = { x, y, z: Math.random() * 5, a }
+    points.push(obj)
+    const track = new Track(obj)
+    track.start = new Date()
+    track.keyMap = new Map([
+      ['a', [
+        [500, a],
+        [1000, 0],
+        [1500, a],
+      ]]
     ])
-    points.push({ x, y, z: Math.random() * 50, color })
+    track.timeLen = 2000
+    track.loop = true
+    compose.add(track)
+  })
+  function render() {
     gl.clear(gl.COLOR_BUFFER_BIT);
-    points.forEach(point => {
-      gl.vertexAttrib2f(a_Position, point.x, point.y);
-      gl.vertexAttrib1f(a_PointSize, point.z);
-      //修改uniform 变量
-      // uniform4fv 既可以单独接受r、g、b、a 四个参数，也可以接受数组形式的参数
-      gl.uniform4fv(u_FragColor, point.color);
+    points.forEach(({ x, y, z, a }) => {
+      gl.vertexAttrib2f(a_Position, x, y);
+      gl.vertexAttrib1f(a_PointSize, z);
+      gl.uniform4fv(u_FragColor, new Float32Array([0.87, 0.92, 1, a]));
       gl.drawArrays(gl.POINTS, 0, 1);
     })
-    // addPoint(x, y)
-  })
+  }
+  !(function ani() {
+    compose.update(new Date())
+    render()
+    requestAnimationFrame(ani)
+  })()
+
 </script>
 
 </html>
