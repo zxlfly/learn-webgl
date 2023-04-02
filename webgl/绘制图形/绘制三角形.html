@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>绘制三角形</title>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+</body>
+<script id="vertexShader" type="x-shader/x-vertex">
+  attribute vec4 a_Position;
+  void main(){
+      gl_Position = a_Position;
+  }
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+  void main(){
+      gl_FragColor=vec4(1.0,1.0,0.0,1.0);
+  }
+</script>
+<script type="module">
+  import { initShaders } from "../js/utils.js"
+  const canvas = document.getElementById('canvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const gl = canvas.getContext('webgl');
+  // 初始化着色器
+  const vsSource = document.getElementById('vertexShader').innerText;
+  const fsSource = document.getElementById('fragmentShader').innerText;
+  initShaders(gl, vsSource, fsSource);
+  //建立顶点数据，两个浮点数构成一个顶点，分别代表x、y 值。
+  const vertices = new Float32Array([
+    0.0, 0.1,
+    -0.1, -0.1,
+    0.1, -0.1
+  ])
+  //建立缓冲对象
+  const vertexBuffer = gl.createBuffer();
+  // 绑定缓冲对象
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  //往缓冲区对象中写入数据
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+  // 将缓冲区对象分配给attribute 变量
+  const a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+  gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+  //开启顶点数据的批处理功能。
+  gl.enableVertexAttribArray(a_Position);
+  //绘图
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+</script>
+
+</html>
