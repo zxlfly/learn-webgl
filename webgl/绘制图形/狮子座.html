@@ -68,6 +68,21 @@
   }
 </script>
 <script type="module">
+  /*
+  1-1-基本绘图需求
+    鼠标第1次点击画布时：
+      创建多边形
+      绘制2个点
+    鼠标移动时：
+      当前多边形最后一个顶点随鼠标移动
+    鼠标接下来点击画布时：
+      新建一个点
+    鼠标右击时：
+      删除最后一个随鼠标移动的点
+  1-2-优化需求
+    顶点要有闪烁动画
+    建立顶点的时候，如果鼠标点击了其它顶点，就不要再显示新的顶点
+  */
   import { initShaders, getMousePosInWebgl } from "../js/utils.js"
   import Poly from '../js/Poly.js';
   import Sky from '../js/Sky.js';
@@ -120,10 +135,15 @@
     render()
   });
   function addVertice(x, y) {
+    // 添加点的时候添加了两个点，
     const { geoData } = poly
+    // 如果是移动到了顶点位置，直接将最后一个点设置为顶点位置
+    // 最后一个点其实就是移动中一直变换坐标的那个点
     if (point) {
       geoData[geoData.length - 1] = point
     }
+    // 不管是不是有顶点，都需要再加一个当做移动中不停修改的那个点
+    // 如不不存在顶点，就将以前移动中的那个点，也就是在点击时记录的位置存下来，然后再创建个一个，作为移动的点
     let obj = { x, y, pointSize: random(), alpha: 1 }
     geoData.push(obj)
     crtTrack(obj)
