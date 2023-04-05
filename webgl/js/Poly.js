@@ -15,6 +15,10 @@ const defAttr = () => ({
   count: 0,
   // types 绘图方式，可以用多种方式绘图
   types: ['POINTS'],
+  // 是否是圆点
+  circleDot: false,
+  // uniform变量
+  u_IsPOINTS: null,
 })
 export default class Poly {
   constructor(attr) {
@@ -23,7 +27,7 @@ export default class Poly {
   }
   //初始化方法，建立缓冲对象，并将其绑定到webgl 上下文对象上，然后向其中写入顶点数据。将缓冲对象交给attribute变量，并开启attribute 变量的批处理功能。
   init() {
-    const { attrName, size, gl } = this
+    const { attrName, size, gl, circleDot } = this
     if (!gl) { return }
     const vertexBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
@@ -31,6 +35,9 @@ export default class Poly {
     const a_Position = gl.getAttribLocation(gl.program, attrName)
     gl.vertexAttribPointer(a_Position, size, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(a_Position)
+    if (circleDot) {
+      this.u_IsPOINTS = gl.getUniformLocation(gl.program, "u_IsPOINTS");
+    }
   }
   // 添加顶点
   addVertice(...params) {
@@ -75,8 +82,9 @@ export default class Poly {
   }
   // 绘图方法
   draw(types = this.types) {
-    const { gl, count } = this
+    const { gl, count, u_IsPOINTS, circleDot } = this
     for (let type of types) {
+      circleDot && gl.uniform1f(u_IsPOINTS, type === 'POINTS');
       gl.drawArrays(gl[type], 0, count);
     }
   }
