@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>二维矩阵</title>
+  <title>四维矩阵</title>
   <style>
     body {
       margin: 0;
@@ -15,21 +15,24 @@
 <body>
   <canvas id="canvas"></canvas>
   <script id="vertexShader" type="x-shader/x-vertex">
+
+
+
     attribute vec4 a_Position;
     float angle=radians(90.0);
     float sinB=sin(angle);
     float cosB=cos(angle);
-    mat2 m2=mat2(
-      cosB, sinB,
-      -sinB,cosB
+    mat4 m4=mat4(
+      cosB, sinB,0.0,0.0,
+      -sinB,cosB,0.0,0.0,
+      0.0,  0.0, 1.0,0.0,
+      0.0,0.0,0.0,1.0
     );
     void main(){
-      gl_Position = vec4(
-        m2*vec2(a_Position),
-        a_Position.z,a_Position.w
-      );
+      gl_Position = m4*a_Position;
     }
   </script>
+
   <script id="fragmentShader" type="x-shader/x-fragment">
     void main(){
         gl_FragColor=vec4(1.0,1.0,0.0,1.0);
