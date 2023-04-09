@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>二维矩阵</title>
+  <title>js建立二维矩阵</title>
   <style>
     body {
       margin: 0;
@@ -19,13 +19,10 @@
     float angle=radians(90.0);
     float sinB=sin(angle);
     float cosB=cos(angle);
-    mat2 m2=mat2(
-      cosB, sinB,
-      -sinB,cosB
-    );
+    uniform mat2 u_Matrix;
     void main(){
       gl_Position = vec4(
-        m2*vec2(a_Position),
+        u_Matrix*vec2(a_Position),
         a_Position.z,a_Position.w
       );
     }
@@ -61,21 +58,23 @@
     gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(a_Position);
     const u_Scale = gl.getUniformLocation(gl.program, 'u_Scale')
-    // gl.uniform1f(u_Scale, 1.0)
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    let angle = 0
-    // gl.uniform1f(u_Scale, scale)
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    // !function ani() {
-    //   angle += 0.01
-    //   angle += 0.05
-    //   const scale = Math.sin(angle) + 1
-    //   gl.uniform1f(u_Scale, scale)
-    //   gl.clear(gl.COLOR_BUFFER_BIT);
-    //   gl.drawArrays(gl.TRIANGLES, 0, 3);
-    //   requestAnimationFrame(ani)
-    // }()
+    const u_Matrix = gl.getUniformLocation(gl.program, 'u_Matrix')
+    let angle = 0.2
+    !function ani() {
+      angle += 0.02
+      const [sinB, cosB] = [Math.sin(angle), Math.cos(angle)]
+      const matrix = [
+        cosB, sinB,
+        -sinB, cosB
+      ]
+      gl.uniformMatrix2fv(u_Matrix, false, matrix)
+
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      requestAnimationFrame(ani)
+    }()
   </script>
 </body>
 
