@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>js建立二维矩阵</title>
+  <title>js建立四维矩阵</title>
   <style>
     body {
       margin: 0;
@@ -16,12 +16,9 @@
   <canvas id="canvas"></canvas>
   <script id="vertexShader" type="x-shader/x-vertex">
     attribute vec4 a_Position;
-    uniform mat2 u_Matrix;
+    uniform mat4 u_Matrix;
     void main(){
-      gl_Position = vec4(
-        u_Matrix*vec2(a_Position),
-        a_Position.z,a_Position.w
-      );
+      gl_Position = u_Matrix*a_Position;
     }
   </script>
   <script id="fragmentShader" type="x-shader/x-fragment">
@@ -63,10 +60,12 @@
       angle += 0.02
       const [sinB, cosB] = [Math.sin(angle), Math.cos(angle)]
       const matrix = [
-        cosB, sinB,
-        -sinB, cosB
+        cosB, sinB, 0.0, 0.0,
+        -sinB, cosB, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
       ]
-      gl.uniformMatrix2fv(u_Matrix, false, matrix)
+      gl.uniformMatrix4fv(u_Matrix, false, matrix)
 
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
