@@ -459,3 +459,54 @@ e*ax+f*by+0+0,
   0.0,0.0,0.0,1.0,
 )
 ```
+### 矩阵平移
+假设位移距离为tx、ty、tz
+```
+// 列主序  矩阵m 未知
+(
+  1.0, 0.0, 0.0,0.0,
+  0.0, 1.0, 0.0,0.0,
+  0.0, 0.0, 1.0,0.0,
+  tx, ty, yz,1.0
+)
+// OA向量已知
+（ax,ay）
+//m * OA 结果
+ax+tx,
+ay+ty,
+az+tz,
+w
+```
+### 矩阵缩放
+假设缩放为sx、sy、sz
+```
+// 列主序  矩阵m 未知
+(
+  sx, 0.0, 0.0,0.0,
+  0.0, sy, 0.0,0.0,
+  0.0, 0.0, sz,0.0,
+  0.0, 0.0, 0.0,1.0
+)
+// OA向量已知
+（ax,ay）
+//m * OA 结果
+ax*sx,
+ay*sy,
+az*sz,
+w
+```
+### 矩阵库
+手写矩阵，其实是很麻烦的，我们可以将其模块化。  
+
+现在市面上已经有许多开源的矩阵库了，比如《WebGL 编程指南》里的cuon-matrix.j  
+three.js 的Matrix3和Matrix4对象。
+#### three.js的Matrix4对象为例
+- 引入Matrix4对象
+  - ``import {Matrix4} from 'https://unpkg.com/three/build/three.module.js';``
+- 实例化矩阵对象，在其中写入旋转信息
+  - ``const matrix=new Matrix4()``
+  - ``matrix.makeRotationZ(Math.PI/6)``
+
+- 基于matrix 对象的elements 属性，修改uniform 变量
+  - ``const u_Matrix=gl.getUniformLocation(gl.program,'u_Matrix')``
+  - ``gl.uniformMatrix4fv(u_Matrix,false,matrix.elements)``
