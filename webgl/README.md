@@ -510,3 +510,10 @@ three.js 的Matrix3和Matrix4对象。
 - 基于matrix 对象的elements 属性，修改uniform 变量
   - ``const u_Matrix=gl.getUniformLocation(gl.program,'u_Matrix')``
   - ``gl.uniformMatrix4fv(u_Matrix,false,matrix.elements)``
+
+## 复合变换
+### 矩阵相乘
+矩阵相乘可以实现复合变换，就比如先位移再旋转(旋转的时候基于原始位置，这样如果位移不为0，就会导致顺序不一样呢的情况下结果不一样)、先旋转在位移，或着连续位移。  
+矩阵乘以矩阵的结果还是矩阵  
+需要注意的是，**矩阵的乘法不满足结合律**
+## 
