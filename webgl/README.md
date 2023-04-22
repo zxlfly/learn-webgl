@@ -677,3 +677,22 @@ function getViewMatrix(e, t, u) {
   return mr.multiply(mt).elements
 }
 ```
+lookAt 方法就是从一个新的角度去看某一个东西的意思
+- e 视点
+- t 目标点
+- u 上方向
+在其中我借助了Three.js 的Vector3 对象
+
+- subVectors(e, t) 向量e减向量t
+- normalize() 向量的归一化
+- crossVectors(u, d) 向量u 和向量d的叉乘
+```
+crossVectors( a, b ) {
+  const ax = a.x, ay = a.y, az = a.z;
+  const bx = b.x, by = b.y, bz = b.z;
+  this.x = ay * bz - az * by;
+  this.y = az * bx - ax * bz;
+  this.z = ax * by - ay * bx;
+  return this;
+}
+```
