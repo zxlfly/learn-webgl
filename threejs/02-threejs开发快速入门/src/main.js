@@ -10,8 +10,6 @@ import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 // 导入draco解码器
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-// 导入tween
-import * as TWEEN from "three/examples/jsm/libs/tween.module.js";
 
 // 创建场景
 const scene = new THREE.Scene();
@@ -30,7 +28,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // 设置相机位置
-camera.position.z = 15;
+camera.position.z = 5;
 camera.position.y = 2;
 camera.position.x = 2;
 camera.lookAt(0, 0, 0);
@@ -54,8 +52,6 @@ function animate() {
   requestAnimationFrame(animate);
   // 渲染
   renderer.render(scene, camera);
-  // 更新tween
-  TWEEN.update();
 }
 animate();
 
@@ -69,56 +65,51 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
 });
 
+let params = {};
+
 // 创建GUI
 const gui = new GUI();
 
-// 创建1个球
-const sphere1 = new THREE.Mesh(
-  new THREE.SphereGeometry(1, 32, 32),
-  new THREE.MeshBasicMaterial({
-    color: 0x00ff00,
-  })
+// 创建场景fog
+scene.fog = new THREE.Fog(0x999999, 0.1, 50);
+// 创建场景指数fog
+// scene.fog = new THREE.FogExp2(0x999999, 0.1);
+scene.background = new THREE.Color(0x999999);
+
+// 实例化加载器gltf
+const gltfLoader = new GLTFLoader();
+// 加载模型
+gltfLoader.load(
+  // 模型路径
+  "./model/Duck.glb",
+  // 加载完成回调
+  (gltf) => {
+    console.log(gltf);
+    scene.add(gltf.scene);
+  }
 );
-sphere1.position.x = -4;
-scene.add(sphere1);
 
-const tween = new TWEEN.Tween(sphere1.position);
-tween.to({ x: 4 }, 1000);
-tween.onUpdate(() => {
-  console.log(sphere1.position.x);
-});
-// 设置循环无数次
-// tween.repeat(Infinity);
-// 循环往复
-// tween.yoyo(true);
-// tween.repeat(2);
-// tween.delay(3000);
-// 设置缓动函数
-tween.easing(TWEEN.Easing.Quadratic.InOut);
+// 实例化加载器draco
+const dracoLoader = new DRACOLoader();
+// 设置draco路径
+dracoLoader.setDecoderPath("./draco/");
+// 设置gltf加载器draco解码器
+gltfLoader.setDRACOLoader(dracoLoader);
 
-let tween2 = new TWEEN.Tween(sphere1.position);
-tween2.to({ x: -4 }, 1000);
+gltfLoader.load(
+  // 模型路径
+  "./model/city.glb",
+  // 加载完成回调
+  (gltf) => {
+    // console.log(gltf);
+    scene.add(gltf.scene);
+  }
+);
 
-tween.chain(tween2);
-tween2.chain(tween);
-// 启动补间动画
-tween.start();
-tween.onStart(() => {
-  console.log("开始");
+// 加载环境贴图
+let rgbeLoader = new RGBELoader();
+rgbeLoader.load("./texture/Alex_Hart-Nature_Lab_Bones_2k.hdr", (envMap) => {
+  envMap.mapping = THREE.EquirectangularReflectionMapping;
+  // 设置环境贴图
+  scene.environment = envMap;
 });
-tween.onComplete(() => {
-  console.log("结束");
-});
-tween.onStop(() => {
-  console.log("停止");
-});
-tween.onUpdate(() => {
-  console.log("更新");
-});
-let params = {
-  stop: function () {
-    tween.stop();
-  },
-};
-
-gui.add(params, "stop");

@@ -1,0 +1,442 @@
+<!-- HTML5 文档类型声明，告诉浏览器按 HTML5 解析 -->
+<!DOCTYPE html>
+<!-- 文档语言为英语，用于无障碍和搜索引擎 -->
+<html lang="en">
+<head>
+	<!-- 页面标题，会显示在浏览器标签上 -->
+	<title>three.js webgl - mesh - batch</title>
+	<!-- 设置文档使用 UTF-8 编码，避免中文乱码 -->
+	<meta charset="utf-8">
+	<!-- 视口设置：禁止缩放并限定最小/最大缩放比例，适配移动端 -->
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<!-- 引入页面样式表 main.css（官方 examples 的通用样式） -->
+	<link type="text/css" rel="stylesheet" href="main.css">
+	<style>
+		/* 顶部信息条半透明黑底 */
+		#info {
+			background-color: rgba(0,0,0,0.75);
+		}
+	</style>
+</head>
+<body>
+
+	<!-- 顶部信息条，放置 three.js 链接和示例标题 -->
+	<div id="info">
+
+		<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgl - mesh - batch
+
+	</div>
+
+	<!-- import map：为 ES Module 指定别名到实际路径的映射 -->
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "../build/three.module.js",           <!-- three.js 主模块文件路径 -->
+				"three/addons/": "./jsm/"                      <!-- three 示例扩展目录前缀（OrbitControls、GUI、Stats 等） -->
+			}
+		}
+	</script>
+
+	<!-- 主逻辑脚本，使用 ES Module 语法 -->
+	<script type="module">
+		// 导入 three.js 主命名空间
+		import * as THREE from 'three';
+
+		// 导入性能统计面板（FPS 等）
+		import Stats from 'three/addons/libs/stats.module.js';
+		// 导入轻量 GUI 面板
+		import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+		// 轨道控制器，用于鼠标旋转/缩放/平移相机
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+		// 基于基数排序的混合快速排序工具
+		import { radixSort } from 'three/addons/utils/SortUtils.js';
+
+		// 全局变量：性能面板、GUI、GUI 统计元素引用
+		let stats, gui, guiStatsEl;
+		// 相机、控制器、场景、渲染器
+		let camera, controls, scene, renderer;
+		// 几何体数组、（可能是 Group 或 BatchedMesh 的）mesh、材质
+		let geometries, mesh, material;
+		// 保存 BatchedMesh 实例 id 的数组
+		const ids = [];
+		// 临时矩阵对象（频繁复用避免创建开销）
+		const matrix = new THREE.Matrix4();
+
+		// --- 下方是复用的临时向量/欧拉角/四元数/缩放变量 ---
+
+		// 位置向量
+		const position = new THREE.Vector3();
+		// 欧拉角（弧度）
+		const rotation = new THREE.Euler();
+		// 四元数（由欧拉角转换而来）
+		const quaternion = new THREE.Quaternion();
+		// 缩放向量
+		const scale = new THREE.Vector3();
+
+		// 最大几何体数量（GUI 可滑动的上限）
+		const MAX_GEOMETRY_COUNT = 20000;
+
+		// 渲染方法枚举：批处理(BatchedMesh) 或 朴素(独立 Mesh)
+		const Method = {
+			BATCHED: 'BATCHED',
+			NAIVE: 'NAIVE'
+		};
+
+		// 可通过 GUI 调整的参数对象
+		const api = {
+			method: Method.BATCHED,   // 默认使用 BatchedMesh
+			count: 256,               // 实例总数量
+			dynamic: 16,               // 每帧更新（旋转）的实例个数
+
+			sortObjects: true,         // 是否对对象进行排序（影响透明渲染）
+			perObjectFrustumCulled: true, // 是否逐对象视锥裁剪（BatchedMesh 内部）
+			opacity: 1,                // 材质不透明度
+			useCustomSort: true,       // 是否使用自定义排序函数
+		};
+
+		// 初始化：场景/GUI/事件
+		init();
+		// 创建基础几何体集合（圆锥、立方体、球）
+		initGeometries();
+		// 根据当前方法创建 mesh（Batched 或 普通）
+		initMesh();
+
+		// -- 工具函数：随机化矩阵（位置/旋转/缩放） --
+		function randomizeMatrix( matrix ) {
+
+			// 位置在 [-20, 20] 范围内随机分布
+			position.x = Math.random() * 40 - 20;
+			position.y = Math.random() * 40 - 20;
+			position.z = Math.random() * 40 - 20;
+
+			// 欧拉角随机旋转 [0, 2π)
+			rotation.x = Math.random() * 2 * Math.PI;
+			rotation.y = Math.random() * 2 * Math.PI;
+			rotation.z = Math.random() * 2 * Math.PI;
+
+			// 由欧拉角计算四元数
+			quaternion.setFromEuler( rotation );
+
+			// 统一随机缩放 [0.5, 1.0]
+			scale.x = scale.y = scale.z = 0.5 + ( Math.random() * 0.5 );
+
+			// 组合为 4x4 变换矩阵并返回
+			return matrix.compose( position, quaternion, scale );
+
+		}
+
+		// -- 工具函数：随机化每轴旋转的速度（欧拉角增量） --
+		function randomizeRotationSpeed( rotation ) {
+
+			rotation.x = Math.random() * 0.01;
+			rotation.y = Math.random() * 0.01;
+			rotation.z = Math.random() * 0.01;
+			return rotation;
+
+		}
+
+		// 初始化基础几何体数组
+		function initGeometries() {
+
+			geometries = [
+				new THREE.ConeGeometry( 1.0, 2.0 ),     // 圆锥：半径1，高2
+				new THREE.BoxGeometry( 2.0, 2.0, 2.0 ), // 立方体：2×2×2
+				new THREE.SphereGeometry( 1.0, 16, 8 ), // 球：半径1，经纬细分 16×8
+			];
+
+		}
+
+		// 创建或复用材质
+		function createMaterial() {
+
+			if ( ! material ) {
+
+				material = new THREE.MeshNormalMaterial(); // 法线着色，可直观看出朝向
+
+			}
+
+			return material;
+
+		}
+
+		// 清理旧的 mesh（切换渲染方法或参数时调用）
+		function cleanup() {
+
+			if ( mesh ) {
+
+				mesh.parent.remove( mesh ); // 从场景移除
+
+				if ( mesh.dispose ) {
+
+					mesh.dispose();         // BatchedMesh 具有 dispose，用于释放 GPU 资源
+
+				}
+
+			}
+
+		}
+
+		// 根据 api.method 初始化对应类型的 mesh
+		function initMesh() {
+
+			cleanup();
+
+			if ( api.method === Method.BATCHED ) {
+
+				initBatchedMesh();
+
+			} else {
+
+				initRegularMesh();
+
+			}
+
+		}
+
+		// 朴素方案：创建一个 Group，里面放许多独立的 Mesh
+		function initRegularMesh() {
+
+			mesh = new THREE.Group();
+			const material = createMaterial();
+
+			for ( let i = 0; i < api.count; i ++ ) {
+
+				const child = new THREE.Mesh( geometries[ i % geometries.length ], material ); // 轮流使用三种几何体
+				randomizeMatrix( child.matrix );                                             // 随机变换写入 child.matrix
+				child.matrix.decompose( child.position, child.quaternion, child.scale );       // 拆回 position/quaternion/scale
+				child.userData.rotationSpeed = randomizeRotationSpeed( new THREE.Euler() );    // 存每个子物体的旋转增量
+				mesh.add( child );
+
+			}
+
+			scene.add( mesh ); // 将 Group 加入场景
+
+		}
+
+		// BatchedMesh 方案：一个几何池 + 多实例，减少 draw call
+		function initBatchedMesh() {
+
+			const geometryCount = api.count;                 // 实例数量（每个实例对应一个对象）
+			const vertexCount = geometries.length * 512;     // 顶点缓冲容量（估算值，需覆盖三种几何的总和）
+			const indexCount = geometries.length * 1024;     // 索引缓冲容量（估算值）
+
+			const euler = new THREE.Euler();                 // 临时欧拉角
+			const matrix = new THREE.Matrix4();              // 临时矩阵（遮蔽外层同名变量，仅函数内使用）
+			mesh = new THREE.BatchedMesh( geometryCount, vertexCount, indexCount, createMaterial() ); // 创建批处理网格
+			mesh.userData.rotationSpeeds = [];               // 存每个实例的旋转矩阵（增量）
+
+			// 禁用整对象视锥裁剪：实例分布较散且动态旋转，整包裁剪可能不准确
+			mesh.frustumCulled = false;
+
+			// 清空 id 列表（重新构建）
+			ids.length = 0;
+
+			// 向 BatchedMesh 注册三种基础几何体，获得各自的几何 id
+			const geometryIds = [
+				mesh.addGeometry( geometries[ 0 ] ),
+				mesh.addGeometry( geometries[ 1 ] ),
+				mesh.addGeometry( geometries[ 2 ] ),
+			];
+
+			// 创建实例并初始化其矩阵与旋转速度
+			for ( let i = 0; i < api.count; i ++ ) {
+
+				const id = mesh.addInstance( geometryIds[ i % geometryIds.length ] ); // 选择对应几何 id
+				mesh.setMatrixAt( id, randomizeMatrix( matrix ) );                    // 设置实例初始矩阵
+
+				const rotationMatrix = new THREE.Matrix4();                            // 以矩阵形式保存旋转增量
+				rotationMatrix.makeRotationFromEuler( randomizeRotationSpeed( euler ) );
+				mesh.userData.rotationSpeeds.push( rotationMatrix );                   // 对应 id 的旋转增量矩阵
+
+				ids.push( id );                                                       // 记录实例 id，方便更新
+
+			}
+
+			scene.add( mesh ); // 将 BatchedMesh 加入场景
+
+		}
+
+		// 初始化渲染基本设施
+		function init() {
+
+			const width = window.innerWidth;   // 画布宽度
+			const height = window.innerHeight; // 画布高度
+
+			// 相机：透视相机，视野 70°，近平面 1，远平面 100
+			camera = new THREE.PerspectiveCamera( 70, width / height, 1, 100 );
+			camera.position.z = 30; // 拉远相机以看到整体
+
+			// WebGL 渲染器：开启抗锯齿
+			renderer = new THREE.WebGLRenderer( { antialias: true } );
+			renderer.setPixelRatio( window.devicePixelRatio ); // 适配高 DPI
+			renderer.setSize( width, height );                 // 设定画布尺寸
+			renderer.setAnimationLoop( animate );              // 使用 VRR/RAF 循环回调 animate
+			document.body.appendChild( renderer.domElement );  // 将画布添加到页面
+
+			// 场景：白色背景
+			scene = new THREE.Scene();
+			scene.background = new THREE.Color( 0xffffff );
+
+			// 轨道控制器：允许自动旋转慢速转动
+			controls = new OrbitControls( camera, renderer.domElement );
+			controls.autoRotate = true;
+			controls.autoRotateSpeed = 1.0;
+
+			// 性能统计面板
+			stats = new Stats();
+			document.body.appendChild( stats.dom );
+
+			// GUI 参数面板
+			gui = new GUI();
+			gui.add( api, 'count', 1, MAX_GEOMETRY_COUNT ).step( 1 ).onChange( initMesh ); // 改变数量时重建 mesh
+			gui.add( api, 'dynamic', 0, MAX_GEOMETRY_COUNT ).step( 1 );                     // 每帧更新的数量
+			gui.add( api, 'method', Method ).onChange( initMesh );                           // 切换渲染方法
+			gui.add( api, 'opacity', 0, 1 ).onChange( v => {
+
+				if ( v < 1 ) {
+
+					material.transparent = true; // 透明开启
+					material.depthWrite = false; // 为避免半透明排序问题，关闭深度写入
+
+				} else {
+
+					material.transparent = false;
+					material.depthWrite = true;
+
+				}
+
+				material.opacity = v;           // 设置不透明度
+				material.needsUpdate = true;    // 通知材质需更新
+
+			} );
+			gui.add( api, 'sortObjects' );                 // BatchedMesh 是否排序实例
+			gui.add( api, 'perObjectFrustumCulled' );      // BatchedMesh 是否逐实例视锥裁剪
+			gui.add( api, 'useCustomSort' );               // 是否使用自定义排序函数
+
+			guiStatsEl = document.createElement( 'li' );   // 预留：GUI 中显示统计项（示例结构）
+			guiStatsEl.classList.add( 'gui-stats' );
+
+			// 监听窗口尺寸变化，保持画布自适应
+			window.addEventListener( 'resize', onWindowResize );
+
+		}
+
+		// 自定义排序函数：将 z 深度映射到无符号 32 位范围并使用 radixSort
+		function sortFunction( list ) {
+
+			// 初始化排序选项（只创建一次并复用）
+			this._options = this._options || {
+				get: el => el.z,                     // 从元素中取参与排序的键（z 值）
+				aux: new Array( this.maxInstanceCount ) // 辅助数组，长度为最大实例数
+			};
+
+			const options = this._options;
+			options.reversed = this.material.transparent; // 半透明时反向排序（从远到近）
+
+			let minZ = Infinity;
+			let maxZ = - Infinity;
+			for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+				const z = list[ i ].z; // 读取每个实例的 z 深度
+				if ( z > maxZ ) maxZ = z;
+				if ( z < minZ ) minZ = z;
+
+			}
+
+			// 将深度归一化到 [0, UINT32_MAX]，便于整数基数排序
+			const depthDelta = maxZ - minZ;
+			const factor = ( 2 ** 32 - 1 ) / depthDelta; // 映射因子
+			for ( let i = 0, l = list.length; i < l; i ++ ) {
+
+				list[ i ].z -= minZ;  // 平移到从 0 开始
+				list[ i ].z *= factor; // 放大到 32 位无符号整型范围
+
+			}
+
+			// 使用混合基数排序进行快速排序
+			radixSort( list, options );
+
+		}
+
+		// 窗口尺寸变化时更新相机与渲染器尺寸
+		function onWindowResize() {
+
+			const width = window.innerWidth;
+			const height = window.innerHeight;
+
+			camera.aspect = width / height; // 更新相机纵横比
+			camera.updateProjectionMatrix(); // 重新计算投影矩阵
+
+			renderer.setSize( width, height ); // 重设渲染尺寸
+
+		}
+
+		// 每帧动画回调
+		function animate() {
+
+			animateMeshes();   // 旋转部分对象
+
+			controls.update(); // 轨道控制器（含自动旋转）
+			stats.update();    // 刷新性能统计
+
+			render();          // 执行一次渲染
+
+		}
+
+		// 执行对象的旋转动画（只更新前 dynamic 个）
+		function animateMeshes() {
+
+			const loopNum = Math.min( api.count, api.dynamic ); // 更新个数不超过总数
+
+			if ( api.method === Method.BATCHED ) {
+
+				for ( let i = 0; i < loopNum; i ++ ) {
+
+					const rotationMatrix = mesh.userData.rotationSpeeds[ i ]; // 第 i 个实例的旋转增量矩阵
+					const id = ids[ i ];                                    // 实例 id
+
+					mesh.getMatrixAt( id, matrix ); // 读取当前实例变换
+					matrix.multiply( rotationMatrix ); // 右乘旋转增量（累积旋转）
+					mesh.setMatrixAt( id, matrix );    // 写回实例矩阵
+
+				}
+
+			} else {
+
+				for ( let i = 0; i < loopNum; i ++ ) {
+
+					const child = mesh.children[ i ];                   // 第 i 个子 Mesh
+					const rotationSpeed = child.userData.rotationSpeed;  // 其欧拉角速度
+
+					child.rotation.set(                                 // 逐轴累加角度
+						child.rotation.x + rotationSpeed.x,
+						child.rotation.y + rotationSpeed.y,
+						child.rotation.z + rotationSpeed.z
+					);
+
+				}
+
+			}
+
+		}
+
+		// 渲染一帧
+		function render() {
+
+			if ( mesh.isBatchedMesh ) { // 只有在 BatchedMesh 下这些选项才有效
+
+				mesh.sortObjects = api.sortObjects;                         // 开关实例排序
+				mesh.perObjectFrustumCulled = api.perObjectFrustumCulled;   // 开关逐实例视锥裁剪
+				mesh.setCustomSort( api.useCustomSort ? sortFunction : null ); // 应用/移除自定义排序
+
+			}
+
+			renderer.render( scene, camera ); // 提交到 GPU 渲染
+
+		}
+
+	</script>
+
+</body>
+</html>
