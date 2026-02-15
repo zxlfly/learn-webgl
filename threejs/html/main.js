@@ -2,8 +2,7 @@ import './style.css'
 import * as THREE from "three"
 // 导入轨道控制器
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-// 导入tween动画库
-import * as TWEEN from "three/examples/jsm/libs/tween.module.js"
+
 const scene = new THREE.Scene()
 // 创建相机
 const camera = new THREE.PerspectiveCamera(
@@ -29,42 +28,46 @@ const cube = new THREE.BoxGeometry(1,1,1)
 const cubeMaterial = new THREE.MeshBasicMaterial({
   color:0x00ff00,
   // 线框模式
-  wireframe:true
+  wireframe:false
 })
-const box = new THREE.Mesh(cube, cubeMaterial)
-box.position.set(2,0,0)
-scene.add(box)
+// 重建3个长方体
+const box1 = new THREE.Mesh(cube, cubeMaterial.clone())
+box1.position.set(2,0,0)
+scene.add(box1)
 
-// 设置动画  支持链式调用，下面实例没有使用链式调用
-const tween1 = new TWEEN.Tween(box.position)
-tween1.to({x:2,y:2,z:0}, 1000)
-// 无限循环
-// tween1.repeat(Infinity)
-// 往返动画
-// tween1.yoyo(true)
-// 动画缓动函数
-tween1.easing(TWEEN.Easing.Quadratic.InOut)
-// 每一帧更新时输出当前坐标
-// tween1.onUpdate(() => {
-//   console.log(box.position)
-// })
-// tween1.start()
+const box2 = new THREE.Mesh(cube, cubeMaterial.clone())
+box2.position.set(0,0,0)
+scene.add(box2)
 
-// 链式调用
-const tween2 = new TWEEN.Tween(box.position)
-tween2.to({x:0,y:2,z:2}, 1000)
-tween2.easing(TWEEN.Easing.Quadratic.InOut)
-
-tween1.chain(tween2)
-tween1.start()
-
+const box3 = new THREE.Mesh(cube, cubeMaterial.clone())
+box3.position.set(-2,0,0)
+scene.add(box3)
+// 光线投射实现3d交互
+const mouse = new THREE.Vector2()
+// 创建射线
+const raycaster = new THREE.Raycaster()
+window.addEventListener('click',(event)=>{
+  // 1. 将屏幕坐标转换为标准化设备坐标（范围：x/y ∈ [-1, 1]）
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+  mouse.y = -((event.clientY / window.innerHeight) * 2 - 1)
+  // 2. 更新射线：从相机位置指向鼠标点击的方向
+  raycaster.setFromCamera(mouse,camera)
+  // 3. 检测射线与立方体的交集
+  const intersects = raycaster.intersectObjects([box1, box2, box3])
+  // 4. 处理击中逻辑
+  if(intersects.length > 0) {
+    const hitObject = intersects[0].object
+    hitObject.material.color.setHex(Math.random() * 0xffffff)
+    console.log('击中物体：', hitObject, '新颜色：', hitObject.material.color.getHexString())
+    // intersects[0].object.material.color.setHex(Math.random() * 0xffffff)
+  }
+})
 
 camera.position.z = 7
 camera.position.x = .5
 camera.position.y = .5
 function animate() {
   controls.update()
-  TWEEN.update()
   requestAnimationFrame(animate)
   renderer.render(scene, camera)
 }
