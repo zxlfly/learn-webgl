@@ -2,7 +2,7 @@ import './style.css'
 import * as THREE from "three"
 // 导入轨道控制器
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-
+import jpg from '/texture/uv_grid_opengl.jpg'
 const scene = new THREE.Scene()
 // 创建相机
 const camera = new THREE.PerspectiveCamera(
@@ -23,45 +23,55 @@ controls.dampingFactor = .05
 const axesHelper = new THREE.AxesHelper( 5 );
 scene.add( axesHelper );
 
-// 创建长方体
-const cube = new THREE.BoxGeometry(1,1,1)
-const cubeMaterial = new THREE.MeshBasicMaterial({
-  color:0x00ff00,
-  // 线框模式
-  wireframe:false
+// 创建四边形   threejs内置的集合体默认自带了uv属性，所以可以直接显示
+const pl = new THREE.PlaneGeometry(2, 2)
+const material = new THREE.MeshBasicMaterial({ 
+  side: THREE.DoubleSide, 
+  map: new THREE.TextureLoader().load(jpg) 
 })
-// 重建3个长方体
-const box1 = new THREE.Mesh(cube, cubeMaterial.clone())
-box1.position.set(2,0,0)
-scene.add(box1)
+const mesh = new THREE.Mesh(pl, material)
+mesh.position.set(2,0,0)
+scene.add(mesh)
 
-const box2 = new THREE.Mesh(cube, cubeMaterial.clone())
-box2.position.set(0,0,0)
-scene.add(box2)
-
-const box3 = new THREE.Mesh(cube, cubeMaterial.clone())
-box3.position.set(-2,0,0)
-scene.add(box3)
-// 光线投射实现3d交互
-const mouse = new THREE.Vector2()
-// 创建射线
-const raycaster = new THREE.Raycaster()
-window.addEventListener('click',(event)=>{
-  // 1. 将屏幕坐标转换为标准化设备坐标（范围：x/y ∈ [-1, 1]）
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1
-  mouse.y = -((event.clientY / window.innerHeight) * 2 - 1)
-  // 2. 更新射线：从相机位置指向鼠标点击的方向
-  raycaster.setFromCamera(mouse,camera)
-  // 3. 检测射线与立方体的交集
-  const intersects = raycaster.intersectObjects([box1, box2, box3])
-  // 4. 处理击中逻辑
-  if(intersects.length > 0) {
-    const hitObject = intersects[0].object
-    hitObject.material.color.setHex(Math.random() * 0xffffff)
-    console.log('击中物体：', hitObject, '新颜色：', hitObject.material.color.getHexString())
-    // intersects[0].object.material.color.setHex(Math.random() * 0xffffff)
-  }
+// 创建四边形   通过BufferGeometry自定义顶点数据来创建四边形，默认没有uv属性，所以需要自己添加uv属性才能显示纹理
+const geometry1 = new THREE.BufferGeometry()
+const vertices = new Float32Array([
+  -1, 1, 0, // 左上
+  1, 1, 0, // 右上
+  -1, -1, 0, // 左下
+  1, -1, 0 // 右下
+])
+geometry1.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
+const indices = [
+  0, 1, 2, // 上三角形
+  1, 2, 3 // 下三角形
+]
+geometry1.setIndex(indices)
+// 默认使用了整张的纹理
+// const uvs = new Float32Array([
+//   0, 1, // 左上
+//   1, 1, // 右上
+//   0, 0, // 左下
+//   1, 0 // 右下
+// ])
+// 只使用纹理的一部分，左下左上直接使用底部0 0坐标，其他的不变
+// 此时刚好使用的是纹理图片的右下部分的三角形区域，左下和右上的uv坐标连城的线就是分界的线，能够对应上的部分是对应纹理图的部分，
+// 另外的部分会因为坐标点的重复导致插值使用了这条线的颜色，视觉上看着就像是拉伸了一样
+const uvs = new Float32Array([
+  0, 0, // 左上
+  1, 1, // 右上
+  0, 0, // 左下
+  1, 0 // 右下
+])
+  
+geometry1.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
+const material1 = new THREE.MeshBasicMaterial({ 
+  side: THREE.DoubleSide, 
+  map: new THREE.TextureLoader().load(jpg) 
 })
+const mesh2 = new THREE.Mesh(geometry1, material1)
+mesh2.position.set(-2,0,0)
+scene.add(mesh2)
 
 camera.position.z = 7
 camera.position.x = .5
