@@ -5,7 +5,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 // 导入GUI
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js"
 // 导入hdr加载器
-import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js"
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 const scene = new THREE.Scene()
 // 创建相机
 const camera = new THREE.PerspectiveCamera(

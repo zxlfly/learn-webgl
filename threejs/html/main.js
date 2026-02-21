@@ -3,7 +3,7 @@ import * as THREE from "three"
 // 导入轨道控制器
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import jpg from '/texture/uv_grid_opengl.jpg'
-import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader.js"
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 const scene = new THREE.Scene()
 // 创建相机
 const camera = new THREE.PerspectiveCamera(

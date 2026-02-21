@@ -5,7 +5,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 // 导入lil.gui
 import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
 // 导入hdr加载器
-import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 // 导入gltf加载器
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 // 导入draco解码器
