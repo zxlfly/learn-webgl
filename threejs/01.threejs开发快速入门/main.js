@@ -1,124 +1,150 @@
-import './style.css'
-import * as THREE from "three"
+// 导入threejs
+import * as THREE from "three";
 // 导入轨道控制器
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import jpg from '/texture/uv_grid_opengl.jpg'
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-const scene = new THREE.Scene()
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+// 导入lil.gui
+import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
+// 导入hdr加载器
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
+// 导入顶点法向量辅助器
+import { VertexNormalsHelper } from "three/examples/jsm/helpers/VertexNormalsHelper.js";
+// 导入gltf加载器
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+// 导入draco解码器
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+// 创建场景
+const scene = new THREE.Scene();
+
 // 创建相机
 const camera = new THREE.PerspectiveCamera(
-  45,//视角
-  window.innerWidth / window.innerHeight,//宽高比
-  0.1,//近裁剪面
-  1000//远裁剪面
-)
+  45, // 视角
+  window.innerWidth / window.innerHeight, // 宽高比
+  0.1, // 近平面
+  1000 // 远平面
+);
+
 // 创建渲染器
-const renderer = new THREE.WebGLRenderer()
-renderer.setSize(window.innerWidth, window.innerHeight)
-document.body.appendChild(renderer.domElement)
-// 创建轨道控制器
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableDamping = true
-controls.dampingFactor = .05
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-const axesHelper = new THREE.AxesHelper( 5 );
-scene.add( axesHelper );
+// 设置相机位置
+camera.position.z = 5;
+camera.position.y = 2;
+camera.position.x = 2;
+camera.lookAt(0, 0, 0);
 
-// 创建四边形   threejs内置的集合体默认自带了uv属性，所以可以直接显示
-const pl = new THREE.PlaneGeometry(2, 2)
-const material = new THREE.MeshBasicMaterial({ 
-  map: new THREE.TextureLoader().load(jpg) 
-})
-const mesh = new THREE.Mesh(pl, material)
-// 不修改顶点数据
-mesh.position.set(2,0,0)
-mesh.rotation.set(Math.PI / 4, 0, 0)
-mesh.scale.set(1, 2, 1)
-// 对应的操作存储在rotation position scale属性上，顶点数据没有发生改变
-console.log(mesh)
-scene.add(mesh)
-// 创建四边形   通过BufferGeometry自定义顶点数据来创建四边形，默认没有uv属性，所以需要自己添加uv属性才能显示纹理
-const geometry1 = new THREE.BufferGeometry()
-const vertices = new Float32Array([
-  -1,-1,0,
-  1,-1,0,
-  1,1,0,
-  -1,1,0
-])
-geometry1.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
-const indices = [
-  0, 1, 2, 2,3,0
-]
-geometry1.setIndex(indices)
-const uvs = new Float32Array([
-  0, 0,
-  1, 0,
-  1, 1,
-  0, 0
-])
-geometry1.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-const material1 = new THREE.MeshBasicMaterial({ 
-  map: new THREE.TextureLoader().load(jpg) 
-})
-// 计算法向量
-geometry1.computeVertexNormals()
-// // 设置法向量
-// const normals = new Float32Array([
-//   0,
-//   0,
-//   1,
-//   0,
-//   0,
-//   1,
-//   0,
-//   0,
-//   1,
-//   0,
-//   0,
-//   1, // 正面
-// ]);
-// // 创建法向量属性
-// geometry1.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
-// 直接修改顶点
-geometry1.translate(2, 0, 0)
-geometry1.rotateZ(Math.PI / 4)
-geometry1.scale(1, 2, 1)
-// 对应的position数据发生了改变，和初始化数据不一样了
-console.log(geometry1)
+// 添加世界坐标辅助器
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
 
-const mesh2 = new THREE.Mesh(geometry1, material1)
-mesh2.position.set(-2,0,0)
-scene.add(mesh2)
-camera.position.z = 7
-camera.position.x = .5
-camera.position.y = .5
+// 添加轨道控制器
+const controls = new OrbitControls(camera, renderer.domElement);
+// 设置带阻尼的惯性
+controls.enableDamping = true;
+// 设置阻尼系数
+controls.dampingFactor = 0.05;
+// 设置旋转速度
+// controls.autoRotate = true;
+
+// 渲染函数
 function animate() {
-  controls.update()
-  requestAnimationFrame(animate)
-  renderer.render(scene, camera)
+  controls.update();
+  requestAnimationFrame(animate);
+  // 渲染
+  renderer.render(scene, camera);
 }
-animate()
-// 监听窗口变化动态适配画布宽高尺寸
+animate();
+
+// 监听窗口变化
 window.addEventListener("resize", () => {
   // 重置渲染器宽高比
-  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setSize(window.innerWidth, window.innerHeight);
   // 重置相机宽高比
-  camera.aspect = window.innerWidth / window.innerHeight
+  camera.aspect = window.innerWidth / window.innerHeight;
   // 更新相机投影矩阵
-  camera.updateProjectionMatrix()
-})
+  camera.updateProjectionMatrix();
+});
 
-// 增加环境贴图
-const rgbeLoader = new RGBELoader()
-// 加载hdr文件
-rgbeLoader.load('/texture/Alex_Hart-Nature_Lab_Bones_2k.hdr', (dataTexture) => {
-  // 设置球形映射
-  dataTexture.mapping = THREE.EquirectangularReflectionMapping
-  // 添加环境贴图
-  scene.background = dataTexture
-  // 设置场景的环境贴图
-  scene.environment = dataTexture
-  // 材质设置环境贴图
-  material1.envMap = dataTexture
-  material.envMap = dataTexture
-}) 
+let eventObj = {
+  Fullscreen: function () {
+    // 全屏
+    document.body.requestFullscreen();
+    console.log("全屏");
+  },
+  ExitFullscreen: function () {
+    document.exitFullscreen();
+    console.log("退出全屏");
+  },
+};
+
+// 创建GUI
+const gui = new GUI();
+// 添加按钮
+gui.add(eventObj, "Fullscreen").name("全屏");
+gui.add(eventObj, "ExitFullscreen").name("退出全屏");
+// 控制立方体的位置
+// gui.add(cube.position, "x", -5, 5).name("立方体x轴位置");
+
+// rgbeLoader 加载hdr贴图
+let rgbeLoader = new RGBELoader();
+rgbeLoader.load("./texture/Alex_Hart-Nature_Lab_Bones_2k.hdr", (envMap) => {
+  // 设置球形贴图
+  envMap.mapping = THREE.EquirectangularReflectionMapping;
+  // 设置环境贴图
+  scene.background = envMap;
+  // 设置环境贴图
+  scene.environment = envMap;
+});
+
+// 实例化加载器gltf
+const gltfLoader = new GLTFLoader();
+// 加载模型
+gltfLoader.load(
+  // 模型路径
+  "./model/Duck.glb",
+  // 加载完成回调
+  (gltf) => {
+    console.log(gltf);
+    scene.add(gltf.scene);
+
+    let duckMesh = gltf.scene.getObjectByName("LOD3spShape");
+    let duckGeometry = duckMesh.geometry;
+
+    // 计算包围盒
+    duckGeometry.computeBoundingBox();
+    // 设置几何体居中
+    // duckGeometry.center();
+    // 获取duck包围盒
+    let duckBox = duckGeometry.boundingBox;
+
+    // 更新世界矩阵
+    duckMesh.updateWorldMatrix(true, true);
+    // 更新包围盒
+    duckBox.applyMatrix4(duckMesh.matrixWorld);
+    // 获取包围盒中心点
+    let center = duckBox.getCenter(new THREE.Vector3());
+    console.log(center);
+    // 创建包围盒辅助器
+    let boxHelper = new THREE.Box3Helper(duckBox, 0xffff00);
+    // 添加包围盒辅助器
+    scene.add(boxHelper);
+    console.log(duckBox);
+    console.log(duckMesh);
+
+    // 获取包围球
+    let duckSphere = duckGeometry.boundingSphere;
+    duckSphere.applyMatrix4(duckMesh.matrixWorld);
+
+    console.log(duckSphere);
+    // 创建包围球辅助器
+    let sphereGeometry = new THREE.SphereGeometry(duckSphere.radius, 16, 16);
+    let sphereMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      wireframe: true,
+    });
+    let sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphereMesh.position.copy(duckSphere.center);
+    scene.add(sphereMesh);
+  }
+);
