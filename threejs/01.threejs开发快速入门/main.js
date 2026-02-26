@@ -109,9 +109,13 @@ gltfLoader.load(
     scene.add(gltf.scene);
     // 获取模型mesh
     const duckMesh = gltf.scene.getObjectByName("LOD3spShape");
+    
     console.log(duckMesh);
     // 获取模型几何体
     const duckGeometry = duckMesh.geometry;
+    // 几何体居中
+    // duckGeometry.center();
+
     // 计算模型的包围盒
     duckGeometry.computeBoundingBox();
     const duckBox = duckGeometry.boundingBox;
@@ -120,25 +124,6 @@ gltfLoader.load(
     console.log(duckBox);
     const helper = new THREE.Box3Helper(duckBox, 0xff0000);
     scene.add(helper);
-
-    // 这种方式计算时世界矩阵可能还没有刷新，所以包围盒可能不准确，需要延迟下，或者手动更新世界矩阵
-    // setTimeout(()=>{
-    //   // 使用 setFromObject 计算包围盒
-    //   const boundingBox = new THREE.Box3().setFromObject(duckMesh);
-    //   const size = new THREE.Vector3();
-    //   boundingBox.getSize(size);
-    //   console.log("包围盒的长宽高:", size);
-    //   // 生成包围盒可视化对象
-    //   const boxHelper = new THREE.Box3Helper(boundingBox, 0xff0000); // 红色包围盒
-
-    //   // 添加包围盒到场景中
-    //   scene.add(boxHelper);
-
-    //   console.log(boundingBox);
-    // },40)
-    /**
-     * 包围球逻辑上和包围盒处理方式一致，只是渲染方式不一样
-     */
     const boundingSphere = duckGeometry.boundingSphere;
     boundingSphere.applyMatrix4(duckMesh.matrixWorld);
     console.log(boundingSphere);
@@ -150,5 +135,11 @@ gltfLoader.load(
     const sphereMesh = new THREE.Mesh(sphereHelper, sphereMaterial);
     sphereMesh.position.copy(boundingSphere.center);
     scene.add(sphereMesh);
+
+    // 创建Vector3对象接收中心点
+    const localCenter = new THREE.Vector3();
+    // 从包围盒中提取几何体本地中心点
+    duckGeometry.boundingBox.getCenter(localCenter);
+    console.log("中心点:", localCenter);
   }
 );
