@@ -107,44 +107,34 @@ gltfLoader.load(
   (gltf) => {
     console.log(gltf);
     scene.add(gltf.scene);
-
-    let duckMesh = gltf.scene.getObjectByName("LOD3spShape");
-    let duckGeometry = duckMesh.geometry;
-
-    // 计算包围盒
-    duckGeometry.computeBoundingBox();
-    // 设置几何体居中
-    // duckGeometry.center();
-    // 获取duck包围盒
-    let duckBox = duckGeometry.boundingBox;
-
-    // 更新世界矩阵
-    duckMesh.updateWorldMatrix(true, true);
-    // 更新包围盒
-    duckBox.applyMatrix4(duckMesh.matrixWorld);
-    // 获取包围盒中心点
-    let center = duckBox.getCenter(new THREE.Vector3());
-    console.log(center);
-    // 创建包围盒辅助器
-    let boxHelper = new THREE.Box3Helper(duckBox, 0xffff00);
-    // 添加包围盒辅助器
-    scene.add(boxHelper);
-    console.log(duckBox);
+    // 获取模型mesh
+    const duckMesh = gltf.scene.getObjectByName("LOD3spShape");
     console.log(duckMesh);
+    // 获取模型几何体
+    const duckGeometry = duckMesh.geometry;
+    // 计算模型的包围盒
+    duckGeometry.computeBoundingBox();
+    const duckBox = duckGeometry.boundingBox;
+    duckMesh.updateWorldMatrix(true,true)
+    duckBox.applyMatrix4(duckMesh.matrixWorld);
+    console.log(duckBox);
+    const helper = new THREE.Box3Helper(duckBox, 0xff0000);
+    scene.add(helper);
 
-    // 获取包围球
-    let duckSphere = duckGeometry.boundingSphere;
-    duckSphere.applyMatrix4(duckMesh.matrixWorld);
+    // 这种方式计算时世界矩阵可能还没有刷新，所以包围盒可能不准确，需要延迟下，或者手动更新世界矩阵
+    // setTimeout(()=>{
+    //   // 使用 setFromObject 计算包围盒
+    //   const boundingBox = new THREE.Box3().setFromObject(duckMesh);
+    //   const size = new THREE.Vector3();
+    //   boundingBox.getSize(size);
+    //   console.log("包围盒的长宽高:", size);
+    //   // 生成包围盒可视化对象
+    //   const boxHelper = new THREE.Box3Helper(boundingBox, 0xff0000); // 红色包围盒
 
-    console.log(duckSphere);
-    // 创建包围球辅助器
-    let sphereGeometry = new THREE.SphereGeometry(duckSphere.radius, 16, 16);
-    let sphereMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff0000,
-      wireframe: true,
-    });
-    let sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    sphereMesh.position.copy(duckSphere.center);
-    scene.add(sphereMesh);
+    //   // 添加包围盒到场景中
+    //   scene.add(boxHelper);
+
+    //   console.log(boundingBox);
+    // },40)
   }
 );
