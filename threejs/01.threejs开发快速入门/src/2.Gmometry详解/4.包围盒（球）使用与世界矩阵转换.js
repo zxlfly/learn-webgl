@@ -136,5 +136,19 @@ gltfLoader.load(
 
     //   console.log(boundingBox);
     // },40)
+    /**
+     * 包围球逻辑上和包围盒处理方式一致，只是渲染方式不一样
+     */
+    const boundingSphere = duckGeometry.boundingSphere;
+    boundingSphere.applyMatrix4(duckMesh.matrixWorld);
+    console.log(boundingSphere);
+    const sphereHelper = new THREE.SphereGeometry(boundingSphere.radius, 16, 16);
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      wireframe: true,
+    });
+    const sphereMesh = new THREE.Mesh(sphereHelper, sphereMaterial);
+    sphereMesh.position.copy(boundingSphere.center);
+    scene.add(sphereMesh);
   }
 );
