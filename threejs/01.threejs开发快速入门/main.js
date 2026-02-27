@@ -2,6 +2,7 @@
 import * as THREE from "three";
 // 导入轨道控制器
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 // 创建场景
 const scene = new THREE.Scene();
 
@@ -49,40 +50,29 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
 });
 
+// 增加光照
+const light = new THREE.AmbientLight(0xffffff, 1);
+scene.add(light);
 
-// 创建三个几何体
-const material1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const material2 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-const material3 = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-const box1 = new THREE.BoxGeometry(1, 1, 1);
-const box2 = new THREE.BoxGeometry(2, 1, 1);
-const box3 = new THREE.BoxGeometry(1, 3, 1);
+// 加载glb模型
+const gltfLoader = new GLTFLoader();
+gltfLoader.load(
+  "./model/Duck.glb",
+  (gltf)=>{
+    // scene.add(gltf.scene);
+    let temp = gltf.scene.children[0].children[0];
+    const geometry = temp.geometry;
+    const lines = new THREE.WireframeGeometry(geometry);
+    // const lines = new THREE.EdgesGeometry(geometry);
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const wireframeLines = new THREE.LineSegments(lines, material);
+    temp.updateWorldMatrix(true, true);
+    // 这种方式是关闭了自动更新矩阵，copy的那份数据后续就不会被刷掉了，所以可以符合预期的渲染线框
+    // wireframeLines.matrixAutoUpdate = false;
+    wireframeLines.matrix.copy(temp.matrixWorld);
+    // 这种方式是将copy的那份数据分解成位置、旋转、缩放后赋值给线框对象，后续就算原模型的矩阵被刷掉了，线框对象也不会受到影响，所以也可以符合预期的渲染线框
+    wireframeLines.matrix.decompose(wireframeLines.position, wireframeLines.quaternion, wireframeLines.scale)
+    scene.add(wireframeLines);
 
-const mesh1 = new THREE.Mesh(box1, material1);
-const mesh2 = new THREE.Mesh(box2, material2);
-const mesh3 = new THREE.Mesh(box3, material3);
-
-mesh1.position.x = -2;
-mesh2.position.x = 0;
-mesh3.position.x = 2;
-
-scene.add(mesh1);
-scene.add(mesh2);
-scene.add(mesh3);
-
-let boxs= [mesh1, mesh2, mesh3];
-let box = new THREE.Box3();
-for(let i=0; i<boxs.length; i++){
-  // const cur = boxs[i];
-  // cur.geometry.computeBoundingBox();
-  // let curBox = cur.geometry.boundingBox
-  // cur.updateWorldMatrix(true,true);
-  // curBox.applyMatrix4(cur.matrixWorld);
-  // box.union(curBox);
-  // 方式二
-  let curBox = new THREE.Box3().setFromObject(boxs[i]);
-  box.union(curBox);
-}
-
-const boxHelper = new THREE.Box3Helper(box, 0xff0000);
-scene.add(boxHelper);
+  },
+)
