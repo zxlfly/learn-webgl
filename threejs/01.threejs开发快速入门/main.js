@@ -2,16 +2,6 @@
 import * as THREE from "three";
 // 导入轨道控制器
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-// 导入lil.gui
-import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
-// 导入hdr加载器
-import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
-// 导入顶点法向量辅助器
-import { VertexNormalsHelper } from "three/examples/jsm/helpers/VertexNormalsHelper.js";
-// 导入gltf加载器
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-// 导入draco解码器
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 // 创建场景
 const scene = new THREE.Scene();
 
@@ -29,9 +19,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // 设置相机位置
-camera.position.z = 5;
-camera.position.y = 2;
-camera.position.x = 2;
+camera.position.z = 10;
+camera.position.y = 4;
+camera.position.x = 5;
 camera.lookAt(0, 0, 0);
 
 // 添加世界坐标辅助器
@@ -40,13 +30,6 @@ scene.add(axesHelper);
 
 // 添加轨道控制器
 const controls = new OrbitControls(camera, renderer.domElement);
-// 设置带阻尼的惯性
-controls.enableDamping = true;
-// 设置阻尼系数
-controls.dampingFactor = 0.05;
-// 设置旋转速度
-// controls.autoRotate = true;
-
 // 渲染函数
 function animate() {
   controls.update();
@@ -66,80 +49,40 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
 });
 
-let eventObj = {
-  Fullscreen: function () {
-    // 全屏
-    document.body.requestFullscreen();
-    console.log("全屏");
-  },
-  ExitFullscreen: function () {
-    document.exitFullscreen();
-    console.log("退出全屏");
-  },
-};
 
-// 创建GUI
-const gui = new GUI();
-// 添加按钮
-gui.add(eventObj, "Fullscreen").name("全屏");
-gui.add(eventObj, "ExitFullscreen").name("退出全屏");
-// 控制立方体的位置
-// gui.add(cube.position, "x", -5, 5).name("立方体x轴位置");
+// 创建三个几何体
+const material1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const material2 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+const material3 = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+const box1 = new THREE.BoxGeometry(1, 1, 1);
+const box2 = new THREE.BoxGeometry(2, 1, 1);
+const box3 = new THREE.BoxGeometry(1, 3, 1);
 
-// rgbeLoader 加载hdr贴图
-let rgbeLoader = new RGBELoader();
-rgbeLoader.load("./texture/Alex_Hart-Nature_Lab_Bones_2k.hdr", (envMap) => {
-  // 设置球形贴图
-  envMap.mapping = THREE.EquirectangularReflectionMapping;
-  // 设置环境贴图
-  scene.background = envMap;
-  // 设置环境贴图
-  scene.environment = envMap;
-});
+const mesh1 = new THREE.Mesh(box1, material1);
+const mesh2 = new THREE.Mesh(box2, material2);
+const mesh3 = new THREE.Mesh(box3, material3);
 
-// 实例化加载器gltf
-const gltfLoader = new GLTFLoader();
-// 加载模型
-gltfLoader.load(
-  // 模型路径
-  "./model/Duck.glb",
-  // 加载完成回调
-  (gltf) => {
-    console.log(gltf);
-    scene.add(gltf.scene);
-    // 获取模型mesh
-    const duckMesh = gltf.scene.getObjectByName("LOD3spShape");
-    
-    console.log(duckMesh);
-    // 获取模型几何体
-    const duckGeometry = duckMesh.geometry;
-    // 几何体居中
-    // duckGeometry.center();
+mesh1.position.x = -2;
+mesh2.position.x = 0;
+mesh3.position.x = 2;
 
-    // 计算模型的包围盒
-    duckGeometry.computeBoundingBox();
-    const duckBox = duckGeometry.boundingBox;
-    duckMesh.updateWorldMatrix(true,true)
-    duckBox.applyMatrix4(duckMesh.matrixWorld);
-    console.log(duckBox);
-    const helper = new THREE.Box3Helper(duckBox, 0xff0000);
-    scene.add(helper);
-    const boundingSphere = duckGeometry.boundingSphere;
-    boundingSphere.applyMatrix4(duckMesh.matrixWorld);
-    console.log(boundingSphere);
-    const sphereHelper = new THREE.SphereGeometry(boundingSphere.radius, 16, 16);
-    const sphereMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ff00,
-      wireframe: true,
-    });
-    const sphereMesh = new THREE.Mesh(sphereHelper, sphereMaterial);
-    sphereMesh.position.copy(boundingSphere.center);
-    scene.add(sphereMesh);
+scene.add(mesh1);
+scene.add(mesh2);
+scene.add(mesh3);
 
-    // 创建Vector3对象接收中心点
-    const localCenter = new THREE.Vector3();
-    // 从包围盒中提取几何体本地中心点
-    duckGeometry.boundingBox.getCenter(localCenter);
-    console.log("中心点:", localCenter);
-  }
-);
+let boxs= [mesh1, mesh2, mesh3];
+let box = new THREE.Box3();
+for(let i=0; i<boxs.length; i++){
+  // const cur = boxs[i];
+  // cur.geometry.computeBoundingBox();
+  // let curBox = cur.geometry.boundingBox
+  // cur.updateWorldMatrix(true,true);
+  // curBox.applyMatrix4(cur.matrixWorld);
+  // box.union(curBox);
+  // 方式二
+  let curBox = new THREE.Box3().setFromObject(boxs[i]);
+  box.union(curBox);
+}
+
+const boxHelper = new THREE.Box3Helper(box, 0xff0000);
+scene.add(boxHelper);
