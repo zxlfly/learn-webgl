@@ -62,8 +62,8 @@ gltfLoader.load(
     // scene.add(gltf.scene);
     let temp = gltf.scene.children[0].children[0];
     const geometry = temp.geometry;
-    const lines = new THREE.WireframeGeometry(geometry);
-    // const lines = new THREE.EdgesGeometry(geometry);
+    // const lines = new THREE.WireframeGeometry(geometry);
+    const lines = new THREE.EdgesGeometry(geometry);
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });
     const wireframeLines = new THREE.LineSegments(lines, material);
     temp.updateWorldMatrix(true, true);
@@ -73,6 +73,5 @@ gltfLoader.load(
     // 这种方式是将copy的那份数据分解成位置、旋转、缩放后赋值给线框对象，后续就算原模型的矩阵被刷掉了，线框对象也不会受到影响，所以也可以符合预期的渲染线框
     wireframeLines.matrix.decompose(wireframeLines.position, wireframeLines.quaternion, wireframeLines.scale)
     scene.add(wireframeLines);
-
   },
 )

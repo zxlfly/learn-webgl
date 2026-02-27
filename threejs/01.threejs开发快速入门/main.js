@@ -62,8 +62,8 @@ gltfLoader.load(
     // scene.add(gltf.scene);
     let temp = gltf.scene.children[0].children[0];
     const geometry = temp.geometry;
-    const lines = new THREE.WireframeGeometry(geometry);
-    // const lines = new THREE.EdgesGeometry(geometry);
+    // const lines = new THREE.WireframeGeometry(geometry);
+    const lines = new THREE.EdgesGeometry(geometry);
     const material = new THREE.LineBasicMaterial({ color: 0xffffff });
     const wireframeLines = new THREE.LineSegments(lines, material);
     temp.updateWorldMatrix(true, true);
